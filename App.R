@@ -27,8 +27,8 @@ ui <- page_fluid(
                     ),
         selectInput("country",
                     "Select the Country:",
-                    choices = sort(unique(retail_data$Country)))
-        )
+                    choices = sort(unique(retail_data$Country))
+                    )
         ),
       nav_panel("Sales Trend", plotlyOutput("salesPlot")),
       nav_panel("Top Products", highchartOutput("productChart")),
@@ -38,17 +38,21 @@ ui <- page_fluid(
       nav_spacer(),
       nav_item(input_dark_mode(id = "dark_mode", mode = "light"))
       )
-  )
+)
 
 
 server <- function(input, output, session) {
   # Sales Trend
   output$salesPlot <- renderPlotly({
-    sales_trend <- retail_data %>%
-      group_by(InvoiceDate) %>%
+    sales_trend <- retail_data |> 
+      group_by(InvoiceDate) |> 
       summarize(TotalRevenue = sum(Revenue, na.rm = TRUE))
-    plot_ly(sales_trend, x = ~InvoiceDate, y = ~TotalRevenue, type = 'scatter', mode = 'lines')
+    plot_ly(sales_trend, x = ~InvoiceDate, y = ~TotalRevenue,
+            type = 'scatter', 
+            mode = 'lines')
   })
+  
+  
 }
 
 shinyApp(ui, server)
