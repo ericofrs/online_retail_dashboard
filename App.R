@@ -1,6 +1,7 @@
 library(shiny)
 library(shinyjs)
 library(shinycssloaders)
+library(shinyWidgets)
 library(bslib)
 library(plotly)
 library(highcharter)
@@ -22,12 +23,13 @@ retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_c
 ui <- page_fluid(
   theme = bs_theme(
     version = 5,
-    bootswatch = "flatly" # theme
+    bootswatch = "flatly", # theme
+    base_font = font_google("Titillium Web")
     ),
   navset_card_underline(
       title = h3("Retail Data Dashboard"),
       sidebar = sidebar(
-        useShinyjs(),
+
         selectInput("fiscalyear",
                     "Select the fiscal year:",
                     choices = c(2010, 2011)
@@ -37,12 +39,19 @@ ui <- page_fluid(
                     choices = sort(unique(retail_data$Country))
                     ),
         br(),
-        radioButtons("file_format", "Select data format:",
-                     choices = c("Comma-separated values (.csv)" = ".csv", "Excel (.xlsx)" = ".xlsx")),
-        downloadButton("download_data", "Download the Data"),
+        useShinyjs(),
+        radioGroupButtons(inputId = "file_format", 
+                          label = "Select data format:",
+                          choices = c("CSV (.csv)" = ".csv",
+                                      "Excel (.xlsx)" = ".xlsx"),
+                          justified = TRUE),
+        downloadBttn(outputId = "download_data", 
+                     label = "Download the Data",
+                     style = "fill",
+                     color = "primary"),
         div(id = "download_spinner", 
               style = "display: none; text-align: center; margin-top: 10px;",
-              tags$img(src = "spinner.gif", height = "30px")
+              tags$img(src = "spinner.gif", height = "50px")
             )
         ),
       nav_panel("Sales Trend", plotlyOutput("salesPlot")),
@@ -65,7 +74,6 @@ server <- function(input, output, session) {
     content = function(file) {
       runjs("$('#download_spinner').show();")
       Sys.sleep(3)
-      
       req(retail_data)
       rio::export(x=retail_data,file = file)
       
