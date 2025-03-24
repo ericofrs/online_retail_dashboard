@@ -1,4 +1,6 @@
 library(shiny)
+library(shinyjs)
+library(shinycssloaders)
 library(bslib)
 library(plotly)
 library(highcharter)
@@ -25,6 +27,7 @@ ui <- page_fluid(
   navset_card_underline(
       title = h3("Retail Data Dashboard"),
       sidebar = sidebar(
+        useShinyjs(),
         selectInput("fiscalyear",
                     "Select the fiscal year:",
                     choices = c(2010, 2011)
@@ -32,7 +35,15 @@ ui <- page_fluid(
         selectInput("country",
                     "Select the Country:",
                     choices = sort(unique(retail_data$Country))
-                    )
+                    ),
+        br(),
+        radioButtons("file_format", "Select data format:",
+                     choices = c("Comma-separated values (.csv)" = ".csv", "Excel (.xlsx)" = ".xlsx")),
+        downloadButton("download_data", "Download the Data"),
+        div(id = "download_spinner", 
+              style = "display: none; text-align: center; margin-top: 10px;",
+              tags$img(src = "spinner.gif", height = "30px")
+            )
         ),
       nav_panel("Sales Trend", plotlyOutput("salesPlot")),
       nav_panel("Top Products", highchartOutput("productChart")),
@@ -46,6 +57,22 @@ ui <- page_fluid(
 
 
 server <- function(input, output, session) {
+  #Download data
+  output$download_data <- downloadHandler(
+    filename = function() {
+      paste("retail_data", input$file_format, sep = "")
+    },
+    content = function(file) {
+      runjs("$('#download_spinner').show();")
+      Sys.sleep(3)
+      
+      req(retail_data)
+      rio::export(x=retail_data,file = file)
+      
+      runjs("$('#download_spinner').hide();")
+    }
+  )
+  
   # Sales Trend
   output$salesPlot <- renderPlotly({
     sales_trend <- retail_data |> 
@@ -112,7 +139,7 @@ server <- function(input, output, session) {
     reactable(top_customers, 
               columns = list(
                 TotalSpent = colDef(style = function(value) {
-                  if (value > 150000) "color: red; font-weight: bold;" else NULL
+                  if (value > 150000) "color: darkblue; font-weight: bold;" else NULL
                 })
               ),
               # searchable = TRUE,
