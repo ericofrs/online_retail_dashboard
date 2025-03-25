@@ -36,9 +36,6 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
-# R Environment Variables
-.Renviron
-
 # pkgdown site
 docs/
 
@@ -51,4 +48,8 @@ rsconnect/
 # RStudio Connect folder
 renv/
 
+# R Environment Variables
 .Renviron
+
+# credentials compilation
+data/credentials.csv

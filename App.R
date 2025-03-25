@@ -2,6 +2,7 @@ library(shiny)
 library(shinyjs)
 library(shinycssloaders)
 library(shinyWidgets)
+library(shinymanager)
 library(bslib)
 library(plotly)
 library(highcharter)
@@ -19,6 +20,8 @@ retail_data <- rio::import("~/RStudio/online_retail_dashboard/data/retail_data.r
 
 retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_coord.rds", trust = TRUE) |> 
   as_tibble()
+
+credentials <- rio::import("~/RStudio/online_retail_dashboard/data/credentials.csv", trust = TRUE)
 
 ui <- page_sidebar(
   theme = bs_theme(
@@ -65,8 +68,14 @@ ui <- page_sidebar(
       )
 )
 
+ui <- secure_app(ui)
 
 server <- function(input, output, session) {
+  #Check the user
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+  
   #Download data
   output$download_data <- downloadHandler(
     filename = function() {
@@ -77,7 +86,6 @@ server <- function(input, output, session) {
       Sys.sleep(3)
       req(retail_data)
       rio::export(x=retail_data,file = file)
-      
       runjs("$('#download_spinner').hide();")
     }
   )
