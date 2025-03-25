@@ -50,3 +50,5 @@ rsconnect/
 
 # RStudio Connect folder
 renv/
+
+.Renviron

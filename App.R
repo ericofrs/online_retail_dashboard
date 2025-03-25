@@ -20,40 +20,41 @@ retail_data <- rio::import("~/RStudio/online_retail_dashboard/data/retail_data.r
 retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_coord.rds", trust = TRUE) |> 
   as_tibble()
 
-ui <- page_fluid(
+ui <- page_sidebar(
   theme = bs_theme(
     version = 5,
     bootswatch = "flatly", # theme
     base_font = font_google("Titillium Web")
     ),
+  title = h3("Retail Data Dashboard"),
+  sidebar = sidebar(
+    
+    selectInput("fiscalyear",
+                "Select the fiscal year:",
+                choices = c(2010, 2011)
+    ),
+    selectInput("country",
+                "Select the Country:",
+                choices = sort(unique(retail_data$Country))
+    ),
+    br(),
+    useShinyjs(),
+    radioGroupButtons(inputId = "file_format", 
+                      label = "Select data format:",
+                      choices = c("CSV (.csv)" = ".csv",
+                                  "Excel (.xlsx)" = ".xlsx"),
+                      justified = TRUE),
+    downloadBttn(outputId = "download_data", 
+                 label = "Download the Data",
+                 style = "fill",
+                 color = "primary"),
+    div(id = "download_spinner", 
+        style = "display: none; text-align: center; margin-top: 10px;",
+        tags$img(src = "spinner.gif", height = "50px")
+    )
+  ),
   navset_card_underline(
-      title = h3("Retail Data Dashboard"),
-      sidebar = sidebar(
-
-        selectInput("fiscalyear",
-                    "Select the fiscal year:",
-                    choices = c(2010, 2011)
-                    ),
-        selectInput("country",
-                    "Select the Country:",
-                    choices = sort(unique(retail_data$Country))
-                    ),
-        br(),
-        useShinyjs(),
-        radioGroupButtons(inputId = "file_format", 
-                          label = "Select data format:",
-                          choices = c("CSV (.csv)" = ".csv",
-                                      "Excel (.xlsx)" = ".xlsx"),
-                          justified = TRUE),
-        downloadBttn(outputId = "download_data", 
-                     label = "Download the Data",
-                     style = "fill",
-                     color = "primary"),
-        div(id = "download_spinner", 
-              style = "display: none; text-align: center; margin-top: 10px;",
-              tags$img(src = "spinner.gif", height = "50px")
-            )
-        ),
+      # title = h2("Retail Data Dashboard"),
       nav_panel("Sales Trend", plotlyOutput("salesPlot")),
       nav_panel("Top Products", highchartOutput("productChart")),
       nav_panel("Sales Map", leafletOutput("salesMap")),
