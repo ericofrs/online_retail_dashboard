@@ -26,6 +26,8 @@ retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_c
 
 credentials <- rio::import("~/RStudio/online_retail_dashboard/data/credentials.csv", trust = TRUE)
 
+# Define UI
+## page_sidebar
 ui <- page_sidebar(
   useWaitress(),
   theme = bs_theme(
@@ -68,7 +70,6 @@ ui <- page_sidebar(
     )
   ),
   navset_card_underline(
-      # title = h2("Retail Data Dashboard"),
       nav_panel("Sales Trend", plotlyOutput("salesPlot")),
       nav_panel("Top Products", highchartOutput("productChart")),
       nav_panel("Sales Map", leafletOutput("salesMap")),
@@ -79,12 +80,15 @@ ui <- page_sidebar(
       )
 )
 
+## Set the secure_app
 ui <- secure_app(ui,
                  theme = bs_theme(
                    version = 5,
                    bootswatch = "flatly"))
 
+#Define server
 server <- function(input, output, session) {
+  
   #Check the user
   res_auth <- secure_server(
     check_credentials = check_credentials(credentials)
