@@ -1,0 +1,28 @@
+---
+title: "Summary Report"
+author: "Your retail app"
+date: "`r Sys.Date()`"
+output:
+  pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+```
+
+# Graph1
+
+Below is the Sales trend graph.
+
+```{r}
+
+```
+
+# Graph 2
+
+Below is the graph with the Top Selling products.
+
+```{r}
+
+```

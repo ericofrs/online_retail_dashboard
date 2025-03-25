@@ -68,7 +68,10 @@ ui <- page_sidebar(
       )
 )
 
-ui <- secure_app(ui)
+ui <- secure_app(ui,
+                 theme = bs_theme(
+                   version = 5,
+                   bootswatch = "flatly"))
 
 server <- function(input, output, session) {
   #Check the user
