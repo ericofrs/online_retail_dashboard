@@ -26,8 +26,8 @@ credentials <- rio::import("~/RStudio/online_retail_dashboard/data/credentials.c
 ui <- page_sidebar(
   theme = bs_theme(
     version = 5,
-    bootswatch = "flatly", # theme
-    base_font = font_google("Titillium Web")
+    bootswatch = "flatly" # theme
+    # base_font = font_google("Titillium Web")
     ),
   title = h3("Retail Data Dashboard"),
   sidebar = sidebar(
