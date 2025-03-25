@@ -1,6 +1,9 @@
 library(shiny)
 library(shinyjs)
 library(shinycssloaders)
+library(waiter)
+library(shinyalert)
+library(rmarkdown)
 library(shinyWidgets)
 library(shinymanager)
 library(bslib)
@@ -24,6 +27,7 @@ retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_c
 credentials <- rio::import("~/RStudio/online_retail_dashboard/data/credentials.csv", trust = TRUE)
 
 ui <- page_sidebar(
+  useWaitress(),
   theme = bs_theme(
     version = 5,
     bootswatch = "flatly" # theme
@@ -46,11 +50,18 @@ ui <- page_sidebar(
                       label = "Select data format:",
                       choices = c("CSV (.csv)" = ".csv",
                                   "Excel (.xlsx)" = ".xlsx"),
-                      justified = TRUE),
+                      justified = TRUE,
+                      size = "sm"),
     downloadBttn(outputId = "download_data", 
                  label = "Download the Data",
                  style = "fill",
-                 color = "primary"),
+                 color = "primary",
+                 size = "sm"),
+    downloadBttn(outputId = "download_report", 
+                 label = "Download the Report",
+                 style = "fill",
+                 color = "primary",
+                 size = "sm"),
     div(id = "download_spinner", 
         style = "display: none; text-align: center; margin-top: 10px;",
         tags$img(src = "spinner.gif", height = "50px")
@@ -79,6 +90,17 @@ server <- function(input, output, session) {
     check_credentials = check_credentials(credentials)
   )
   
+  # call the waitress
+  waitress <- Waitress$
+    new(theme = "overlay-percent")$
+    start() # start
+    for(i in 1:10){
+    waitress$inc(10) # increase by 10%
+    Sys.sleep(.3)
+  }
+    # hide when it's done
+  waitress$close() 
+  
   #Download data
   output$download_data <- downloadHandler(
     filename = function() {
@@ -90,6 +112,43 @@ server <- function(input, output, session) {
       req(retail_data)
       rio::export(x=retail_data,file = file)
       runjs("$('#download_spinner').hide();")
+      shinyalert(title = "Congrats", 
+                 text = "The Data has been downloaded", 
+                 type = "success",
+                 size = "xs", 
+                 closeOnEsc = TRUE,
+                 closeOnClickOutside = TRUE,
+                 showConfirmButton = FALSE,
+                 showCancelButton = FALSE,
+                 timer = 2000)
+    }
+  )
+  
+  output$download_report <- downloadHandler(
+    filename = function() {
+      paste("report-", Sys.Date(), ".pdf", sep = "")
+    },
+    content = function(file) {
+      runjs("$('#download_spinner').show();")
+      Sys.sleep(3)
+      
+      # Render the R Markdown file
+      rmarkdown::render(
+        input = "www/template.Rmd",
+        output_file = file,
+        # params = list(),
+        envir = new.env(parent = globalenv())
+        )
+      runjs("$('#download_spinner').hide();")
+      shinyalert(title = "Great", 
+                 text = "The Report has been downloaded", 
+                 type = "success",
+                 size = "xs", 
+                 closeOnEsc = TRUE,
+                 closeOnClickOutside = TRUE,
+                 showConfirmButton = FALSE,
+                 showCancelButton = FALSE,
+                 timer = 2000)
     }
   )
   
