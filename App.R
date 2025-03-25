@@ -136,7 +136,7 @@ server <- function(input, output, session) {
       rmarkdown::render(
         input = "www/template.Rmd",
         output_file = file,
-        # params = list(),
+        params = list(data = retail_data), #substitute later to the reactive data()
         envir = new.env(parent = globalenv())
         )
       runjs("$('#download_spinner').hide();")
