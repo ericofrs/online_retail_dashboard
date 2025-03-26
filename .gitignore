@@ -56,3 +56,6 @@ data/credentials.csv
 
 # Sensitive data
 data/mydatabase.db
+
+# Credentials with SQLite
+scripts/credentials_with_sqlite.R

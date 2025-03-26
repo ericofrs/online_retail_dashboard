@@ -6,6 +6,7 @@ library(shinyalert)
 library(rmarkdown)
 library(shinyWidgets)
 library(shinymanager)
+library(keyring)
 library(bslib)
 library(plotly)
 library(highcharter)
@@ -17,14 +18,11 @@ library(lubridate)
 library(tidyverse)
 library(rio)
 
-
 retail_data <- rio::import("~/RStudio/online_retail_dashboard/data/retail_data.rds", trust = TRUE) |> 
   as_tibble()
 
 retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_coord.rds", trust = TRUE) |> 
   as_tibble()
-
-credentials <- rio::import("~/RStudio/online_retail_dashboard/data/credentials.csv", trust = TRUE)
 
 # Define UI
 ## page_sidebar
@@ -91,15 +89,20 @@ ui <- page_sidebar(
 ui <- secure_app(ui,
                  theme = bs_theme(
                    version = 5,
-                   bootswatch = "flatly"))
+                   bootswatch = "flatly"),
+                 fab_position = "top-right",
+                 enable_admin = TRUE)
 
 #Define server
 server <- function(input, output, session) {
   
   #Check the user
   res_auth <- secure_server(
-    check_credentials = check_credentials(credentials)
-  )
+    check_credentials = check_credentials(
+      "data/users.sqlite",
+      passphrase = key_get("R-shinymanager-key", Sys.getenv("shinymanager_passphrase"))
+    )
+    )
   
   # call the waitress
   waitress <- Waitress$
@@ -110,7 +113,15 @@ server <- function(input, output, session) {
     Sys.sleep(.3)
   }
     # hide when it's done
-  waitress$close() 
+  waitress$close()
+  
+  filtered_data <- reactive({
+    req(input$fiscalyear, input$country)
+    
+    retail_data |>
+      filter(FiscalYear %in% input$fiscalyear, 
+             Country %in% input$country)
+  })
   
   #Download data
   output$download_data <- downloadHandler(
@@ -120,8 +131,8 @@ server <- function(input, output, session) {
     content = function(file) {
       runjs("$('#download_spinner').show();")
       Sys.sleep(3)
-      req(retail_data)
-      rio::export(x=retail_data,file = file)
+      req(filtered_data())
+      rio::export(x=filtered_data(),file = file)
       runjs("$('#download_spinner').hide();")
       shinyalert(title = "Congrats", 
                  text = "The Data has been downloaded", 
@@ -147,7 +158,7 @@ server <- function(input, output, session) {
       rmarkdown::render(
         input = "www/template.Rmd",
         output_file = file,
-        params = list(data = retail_data), #substitute later to the reactive data()
+        params = list(data = filtered_data()), #substitute later to the reactive data()
         envir = new.env(parent = globalenv())
         )
       runjs("$('#download_spinner').hide();")

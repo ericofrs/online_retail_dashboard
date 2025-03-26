@@ -1,19 +1,7 @@
 library(DBI)
 library(RSQLite)
 
-
-credentials <- data.frame(
-  user = c(Sys.getenv("user1_login"), Sys.getenv("user2_login")), # mandatory
-  password = c(Sys.getenv("user1_pw"), Sys.getenv("user2_pw")), # mandatory
-  start = c("2025-03-25"),
-  expire = c(NA, NA),
-  admin = c(Sys.getenv("admin1"), Sys.getenv("admin2"))
-  # comment = "Simple and secure authentification mechanism for single ‘Shiny’ applications.",
-  # stringsAsFactors = FALSE
-)
-
 rio::export(credentials, "~/RStudio/online_retail_dashboard/data/credentials.csv")
-
 
 conn <- DBI::dbConnect(RSQLite::SQLite(), "~/RStudio/online_retail_dashboard/data/mydatabase.db")
 
@@ -33,3 +21,9 @@ insert_deps <- "INSERT INTO departments (Department, Name, Username)
 
 
 dbExecute(conn, insert_deps)
+
+# Example on how to tweak the R vector so it can be used in a query
+# username_vector <- c("carlos", "pedro")
+# username_string <- paste0("'", username_vector, "'", collapse = ", ")
+# query <- paste0("SELECT * FROM users WHERE username IN (", username_string, ")")
+
