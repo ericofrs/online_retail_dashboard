@@ -1,3 +1,6 @@
+library(DBI)
+library(RSQLite)
+
 
 credentials <- data.frame(
   user = c(Sys.getenv("user1_login"), Sys.getenv("user2_login")), # mandatory
@@ -10,3 +13,23 @@ credentials <- data.frame(
 )
 
 rio::export(credentials, "~/RStudio/online_retail_dashboard/data/credentials.csv")
+
+
+conn <- DBI::dbConnect(RSQLite::SQLite(), "~/RStudio/online_retail_dashboard/data/mydatabase.db")
+
+query_users <- "SELECT * FROM users"
+users_data <- dbGetQuery(conn, query_users)
+
+query_deps <- "SELECT * FROM departments"
+deps_data <- dbGetQuery(conn, query_deps)
+
+insert_deps <- "INSERT INTO departments (Department, Name, Username)
+  VALUES
+    ('HR', 'Big Boss', 'admin'),
+    ('IT', 'Robert Smith', 'bob'),
+    ('Sales', 'Carl Johnson', 'carl'),
+    ('Sales', 'Jane Williams', 'jane'),
+    ('IT', 'Newbie', 'new_user');"
+
+
+dbExecute(conn, insert_deps)

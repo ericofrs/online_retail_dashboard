@@ -53,3 +53,6 @@ renv/
 
 # credentials compilation
 data/credentials.csv
+
+# Sensitive data
+data/mydatabase.db
