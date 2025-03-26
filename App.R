@@ -37,15 +37,22 @@ ui <- page_sidebar(
     ),
   title = h3("Retail Data Dashboard"),
   sidebar = sidebar(
-    
-    selectInput("fiscalyear",
-                "Select the fiscal year:",
-                choices = c(2010, 2011)
-    ),
-    selectInput("country",
-                "Select the Country:",
-                choices = sort(unique(retail_data$Country))
-    ),
+    virtualSelectInput(inputId = "fiscalyear",
+                      label = "Select the fiscal year(s):", 
+                      choices = unique(retail_data$FiscalYear),
+                      selected = unique(retail_data$FiscalYear),
+                      multiple = TRUE,
+                      showValueAsTags = TRUE,
+                      width = "100%",
+                      dropboxWrapper = "body"
+                      ),
+    pickerInput(inputId = "country",
+                label = "Select the Country:",
+                choices = sort(unique(retail_data$Country)),
+                options = pickerOptions(container = "body",
+                                        width = "100%",
+                                        liveSearch = TRUE)
+                ),
     br(),
     useShinyjs(),
     radioGroupButtons(inputId = "file_format", 
