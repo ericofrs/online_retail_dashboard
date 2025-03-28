@@ -1,9 +1,11 @@
 ---
-title: "Summary Report"
 author: "Your retail app"
 date: "`r Sys.Date()`"
 params:
   data: NULL
+  country: NULL
+  years: NULL
+title: "Summary report of `r params$country` in `r params$years`"
 output:
   pdf_document
 ---

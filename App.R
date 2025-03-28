@@ -42,7 +42,9 @@ ui <- page_sidebar(
                       multiple = TRUE,
                       showValueAsTags = TRUE,
                       width = "100%",
-                      dropboxWrapper = "body"
+                      dropboxWrapper = "body", 
+                      required = TRUE,
+                      minValues = 1
                       ),
     pickerInput(inputId = "country",
                 label = "Select the Country:",
@@ -51,6 +53,10 @@ ui <- page_sidebar(
                                         width = "100%",
                                         liveSearch = TRUE)
                 ),
+    actionBttn(inputId = "apply_filter",
+               label = "Apply Filters",
+               style = "stretch",
+               color = "primary"),
     br(),
     useShinyjs(),
     radioGroupButtons(inputId = "file_format", 
@@ -85,24 +91,26 @@ ui <- page_sidebar(
       )
 )
 
-## Set the secure_app
-ui <- secure_app(ui,
-                 theme = bs_theme(
-                   version = 5,
-                   bootswatch = "flatly"),
-                 fab_position = "top-right",
-                 enable_admin = TRUE)
+# # Set the secure_app
+# ui <- secure_app(ui,
+#                  theme = bs_theme(
+#                    version = 5,
+#                    bootswatch = "flatly"),
+#                  fab_position = "top-right",
+#                  enable_admin = TRUE)
 
 #Define server
 server <- function(input, output, session) {
   
-  #Check the user
-  res_auth <- secure_server(
-    check_credentials = check_credentials(
-      "data/users.sqlite",
-      passphrase = key_get("R-shinymanager-key", Sys.getenv("shinymanager_passphrase"))
-    )
-    )
+  # browser()
+  
+  # #Check the user
+  # res_auth <- secure_server(
+  #   check_credentials = check_credentials(
+  #     "data/users.sqlite",
+  #     passphrase = keyring::key_get("R-shinymanager-key", Sys.getenv("shinymanager_passphrase"))
+  #   )
+  #   )
   
   # call the waitress
   waitress <- Waitress$
@@ -115,12 +123,45 @@ server <- function(input, output, session) {
     # hide when it's done
   waitress$close()
   
-  filtered_data <- reactive({
-    req(input$fiscalyear, input$country)
-    
-    retail_data |>
-      filter(FiscalYear %in% input$fiscalyear, 
-             Country %in% input$country)
+  # filtered_data <- reactive({
+  #   req(input$fiscalyear, input$country)
+  #   
+  #   retail_data |>
+  #     filter(FiscalYear %in% input$fiscalyear, 
+  #            Country %in% input$country)
+  # })
+  
+  filtered_data <- reactiveVal(retail_data)
+  country_sales_reactive <- reactiveVal({
+    retail_w_coord |> 
+      group_by(Country, Lat, Lon) |> 
+      summarize(TotalRevenue = sum(Revenue, na.rm = TRUE))
+  })
+  
+  observeEvent(input$apply_filter, {
+    if (length(input$fiscalyear) == 0 || length(input$country) == 0) {
+      shinyalert(title = "Attention!", 
+                 text = "Please select at least one year and one country", 
+                 type = "error",
+                 size = "m", 
+                 closeOnEsc = TRUE,
+                 closeOnClickOutside = TRUE,
+                 showConfirmButton = TRUE,
+                 showCancelButton = FALSE)
+    } else {
+      filtered_data(
+        retail_data |>
+          filter(FiscalYear %in% input$fiscalyear, 
+                 Country %in% input$country)
+      )
+      
+      country_sales_reactive( 
+        retail_w_coord |> 
+          filter(FiscalYear %in% input$fiscalyear) |> 
+          group_by(Country, Lat, Lon) |> 
+          summarize(TotalRevenue = sum(Revenue, na.rm = TRUE))
+      )
+    }
   })
   
   #Download data
@@ -151,42 +192,68 @@ server <- function(input, output, session) {
       paste("report-", Sys.Date(), ".pdf", sep = "")
     },
     content = function(file) {
-      runjs("$('#download_spinner').show();")
-      Sys.sleep(3)
-      
-      # Render the R Markdown file
-      rmarkdown::render(
-        input = "www/template.Rmd",
-        output_file = file,
-        params = list(data = filtered_data()), #substitute later to the reactive data()
-        envir = new.env(parent = globalenv())
+      # Check if data has been filtered
+      if (nrow(filtered_data()) == nrow(retail_data)) {
+        # If no filtering has occurred, show an alert
+        shinyalert(
+          title = "Filter the data first", 
+          text = "Please apply filters before downloading the report", 
+          type = "warning",
+          size = "m", 
+          closeOnEsc = TRUE,
+          closeOnClickOutside = TRUE,
+          showConfirmButton = TRUE,
+          showCancelButton = FALSE
         )
-      runjs("$('#download_spinner').hide();")
-      shinyalert(title = "Great", 
-                 text = "The Report has been downloaded", 
-                 type = "success",
-                 size = "xs", 
-                 closeOnEsc = TRUE,
-                 closeOnClickOutside = TRUE,
-                 showConfirmButton = FALSE,
-                 showCancelButton = FALSE,
-                 timer = 2000)
+      } else {
+        runjs("$('#download_spinner').show();")
+        Sys.sleep(3)
+        
+        rmarkdown::render(
+          input = "www/template.Rmd",
+          output_file = file,
+          params = list(
+            data = filtered_data(),
+            country = input$country,
+            years = input$fiscalyear
+          ),
+          envir = new.env(parent = globalenv())
+        )
+        runjs("$('#download_spinner').hide();")
+        shinyalert(
+          title = "Great", 
+          text = "The Report has been downloaded", 
+          type = "success",
+          size = "xs", 
+          closeOnEsc = TRUE,
+          closeOnClickOutside = TRUE,
+          showConfirmButton = FALSE,
+          showCancelButton = FALSE,
+          timer = 2000
+        )
+      }
     }
   )
   
   # Sales Trend
   output$salesPlot <- renderPlotly({
-    sales_trend <- retail_data |> 
+    sales_trend <- filtered_data() |> 
       group_by(InvoiceDate) |> 
       summarize(TotalRevenue = sum(Revenue, na.rm = TRUE))
+    
     plot_ly(sales_trend, x = ~InvoiceDate, y = ~TotalRevenue,
             type = 'scatter', 
-            mode = 'lines')
+            mode = 'lines') |>
+      layout(
+        title = "Sales Trend",
+        xaxis = list(title = "Invoice Date"),
+        yaxis = list(title = "Total Revenue")
+      )
   })
   
   # Top Selling products
   output$productChart <- renderHighchart({
-    top_products <- retail_data  |> 
+    top_products <- filtered_data()  |> 
       group_by(StockCode, Description) |>
       summarize(TotalRevenue = sum(Revenue, na.rm = TRUE),
                 TotalQuantity = sum(Quantity, na.rm = TRUE)) |>
@@ -196,7 +263,7 @@ server <- function(input, output, session) {
     highchart() |>
       hc_chart(type = "column") |>
       hc_xAxis(categories = top_products$Description,
-               crosshair = T) |>
+               crosshair = TRUE) |>
       hc_add_series(name = "Quantity", data = top_products$TotalQuantity, type = "column") |>
       hc_add_series(name = "Revenue", data = top_products$TotalRevenue, type = "spline", yAxis = 1) |>
       hc_yAxis_multiples(
@@ -204,15 +271,18 @@ server <- function(input, output, session) {
         list(title = list(text = "Revenue"), opposite = TRUE)
       ) |>
       hc_tooltip(shared = TRUE,
-                 valueDecimals = 0)
+                 valueDecimals = 0) |>
+      hc_title(text = "Top 10 Selling Products")
   })
   
   # Sales Map
-  country_sales <- retail_w_coord |> 
-    group_by(Country, Lat, Lon) |> 
-    summarize(TotalRevenue = sum(Revenue, na.rm = TRUE))
-  
   output$salesMap <- renderLeaflet({
+    country_sales <- country_sales_reactive()
+    marker_colors <- ifelse(
+      country_sales$Country %in% input$country, 
+      "green",  # Selected countries in green
+      "blue"  # Other countries in blue
+    )
     leaflet(country_sales) |> 
       addProviderTiles(providers$CartoDB.Positron, group = "PositronLight") |> 
       addProviderTiles(providers$Stadia.AlidadeSmoothDark, group = "AlidadeDark") |> 
@@ -221,17 +291,20 @@ server <- function(input, output, session) {
           "PositronLight", "AlidadeDark"),
         position = "bottomleft"
       ) |> 
-      addMarkers(~Lon, ~Lat, popup = ~paste(Country, "Sales:", TotalRevenue))
+      addCircleMarkers(~Lon, ~Lat, 
+                       color = marker_colors,
+                       radius = 8,
+                       popup = ~paste(Country, "Sales:", round(TotalRevenue,2)))
   })
   
   # Sales Table
   output$salesTable <- renderDT({
-    datatable(retail_data, options = list(pageLength = 5, autoWidth = TRUE))
+    datatable(filtered_data(), options = list(pageLength = 5, autoWidth = TRUE))
   })
   
   # Top Customers Table
   output$customerTable <- renderReactable({
-    top_customers <- retail_data %>%
+    top_customers <- filtered_data() %>%
       group_by(CustomerID) %>%
       summarize(TotalSpent = sum(Revenue, na.rm = TRUE)) %>%
       arrange(desc(TotalSpent)) %>%
@@ -243,7 +316,6 @@ server <- function(input, output, session) {
                   if (value > 150000) "color: darkblue; font-weight: bold;" else NULL
                 })
               ),
-              # searchable = TRUE,
               filterable = TRUE,
               sortable = TRUE
     )
