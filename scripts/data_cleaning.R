@@ -1,10 +1,10 @@
 library(dplyr)
 library(rio)
 
-data2010 <- import("~/RStudio/online_retail_dashboard/data/online_retail_2010.csv") |> 
+data2010 <- import("data/online_retail_2010.csv") |> 
   mutate(FiscalYear = factor(2010))
 
-data2011 <- import("~/RStudio/online_retail_dashboard/data/online_retail_2011.csv") |> 
+data2011 <- import("data/online_retail_2011.csv") |> 
   mutate(FiscalYear = factor(2011))
 
 retail_data <- rbind(data2010,data2011)
@@ -25,7 +25,7 @@ retail_data <- retail_data |>
     Revenue = Quantity * Price
   )
 
-rio::export(retail_data, "~/RStudio/online_retail_dashboard/data/retail_data.rds")
+rio::export(retail_data, "data/retail_data.rds")
 
 # File with geo coord.
 country_coords <- data.frame(
@@ -63,5 +63,5 @@ country_coords <- data.frame(
 
 retail_w_coord <- merge(retail_data, country_coords, by = "Country", all.x = TRUE)
 
-rio::export(retail_w_coord, "~/RStudio/online_retail_dashboard/data/retail_w_coord.rds")
+rio::export(retail_w_coord, "data/retail_w_coord.rds")
 

@@ -1,9 +1,9 @@
 library(DBI)
 library(RSQLite)
 
-rio::export(credentials, "~/RStudio/online_retail_dashboard/data/credentials.csv")
+rio::export(credentials, "data/credentials.csv")
 
-conn <- DBI::dbConnect(RSQLite::SQLite(), "~/RStudio/online_retail_dashboard/data/mydatabase.db")
+conn <- DBI::dbConnect(RSQLite::SQLite(), "data/mydatabase.db")
 
 query_users <- "SELECT * FROM users"
 users_data <- dbGetQuery(conn, query_users)

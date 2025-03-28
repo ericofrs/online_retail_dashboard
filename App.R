@@ -18,10 +18,10 @@ library(lubridate)
 library(tidyverse)
 library(rio)
 
-retail_data <- rio::import("~/RStudio/online_retail_dashboard/data/retail_data.rds", trust = TRUE) |> 
+retail_data <- rio::import("data/retail_data.rds", trust = TRUE) |> 
   as_tibble()
 
-retail_w_coord <- rio::import("~/RStudio/online_retail_dashboard/data/retail_w_coord.rds", trust = TRUE) |> 
+retail_w_coord <- rio::import("data/retail_w_coord.rds", trust = TRUE) |> 
   as_tibble()
 
 # Define UI
